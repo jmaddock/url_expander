@@ -33,6 +33,7 @@ def expand(url):
         return url_data
 
 def main():
+    print expand(url=URL)
     print expand(url=URL2)
 
 if __name__ == '__main__':
