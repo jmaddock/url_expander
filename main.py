@@ -3,7 +3,7 @@ from urlparse import urlparse
 from bs4 import BeautifulSoup
 
 URL = 'http://t.co/EzlKnfAeUi'
-URL2 = 'http://www.adfadfasdf.com'
+URL2 = 'http://somelab.net/wiki/doku.php'
 
 def expand(url):
     url_data = {'url':url}
@@ -27,8 +27,14 @@ def expand(url):
 
         soup = BeautifulSoup(response)
         url_data['title'] = soup.title.string
-        url_data['meta-description'] = soup.find("meta", {"name":"description"})['content']
-        url_data['meta-keywords'] = soup.find("meta", {"name":"keywords"})['content']
+        try:
+            url_data['meta-description'] = soup.find("meta", {"name":"description"})['content']
+        except:
+            url_data['meta-description'] = 'no meta-description'
+        try:
+            url_data['meta-keywords'] = soup.find("meta", {"name":"keywords"})['content']
+        except:
+            url_data['meta-keywords'] = 'no meta-keywords'
 
         return url_data
 
