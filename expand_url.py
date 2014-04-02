@@ -24,22 +24,18 @@ class Expand_Url(object):
     def expand(self,url):
         url_data = {'short_url':url}
 
-        expanded_at = datetime.datetime.now()
+        expanded_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         url_data['expanded_at'] = expanded_at
 
         try:
             response = urllib2.urlopen(url)
 
         except urllib2.HTTPError as e:
-            print 'The server couldn\'t fulfill the request.'
-            print 'Error code: ', e.code
             url_data['error'] = e.code
             return url_data
 
         except urllib2.URLError as e:
-            print 'We failed to reach a server.'
-            print 'Reason: ', e.reason
-            url_data['error'] = e.code
+            url_data['error'] = e.reason
             return url_data
 
         else:
@@ -47,7 +43,10 @@ class Expand_Url(object):
             url_data['domain'] = urlparse(url_data['long-url']).netloc
 
             soup = BeautifulSoup(response)
-            url_data['title'] = soup.title.string
+            try:
+                url_data['title'] = soup.title.string
+            except AttributeError as e:
+                pass
             try:
                 url_data['meta-description'] = soup.find("meta", {"name":"description"})['content']
             except TypeError as e:
