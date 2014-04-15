@@ -2,6 +2,7 @@ from connection import dbConnection
 import urllib2, datetime
 from urlparse import urlparse
 from bs4 import BeautifulSoup
+from socket import error as SocketError
 
 class Expand_Url(object):
 
@@ -16,6 +17,7 @@ class Expand_Url(object):
 
         if raw_data == None:
             url_data = self.expand(short_url)
+            #print url_data
             self.cache.m_connections[self.db_name].insert(url_data)
             return url_data
         else:
@@ -35,8 +37,12 @@ class Expand_Url(object):
             return url_data
 
         except urllib2.URLError as e:
-            url_data['error'] = e.reason
+            url_data['error'] = str(e.args[0])
             return url_data
+
+        except SocketError as e:
+            url_data['error'] = str(e.args[0])
+            return url_data # loop this
 
         else:
             url_data['long-url'] = response.url
