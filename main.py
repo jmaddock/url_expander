@@ -1,8 +1,9 @@
 import sys, simplejson, time
 from celery import group, signature
 from load_tweets import process_tweet
+from connection import dbConnection
 
-def load_tweets():
+def load_tweets_from_stdin():
     tweet_queue = []
     for line in sys.stdin:
         line = line.strip()
@@ -13,6 +14,15 @@ def load_tweets():
             print e,line
 
     return tweet_queue
+
+def load_tweets_from_mongo(db_name):
+    db = dbConnection()
+    db.create_mongo_connections(mongo_options=[db_name])
+
+    tweets = db.m_connections.find({'counts.urls':{'$gte':1}})
+    tweet_queue = [x for x in tweets]
+    return tweet_queue
+
 
 def working_main():
     tweet_queue = load_tweets()
@@ -30,15 +40,15 @@ def working_main():
                 except: #fix this
                     pass
 
-def dev_main():
-    tweet_queue = load_tweets()
+def threaded_expand(db='False'):
+    tweet_queue = load_tweets_from_stdin()
     result = group(process_tweet.s(tweet) for tweet in tweet_queue)()
-    #task = group([process_tweet(tweet_queue[0]),process_tweet(tweet_queue[1]),process_tweet(tweet_queue[2])])
-    #result = task.apply_async()
+    while not result.ready():
+        time.sleep(15)
     if result.successful():
         for x in result.get():
             if not 'info' in x:
-                print x['id']
+                print x['entities']['urls']
 
 if __name__ == '__main__':
-    dev_main()
+    threaded_expand()
