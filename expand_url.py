@@ -24,13 +24,20 @@ class Expand_Url(object):
             return raw_data
 
     def expand(self,url):
+        response = None
         url_data = {'short_url':url}
 
         expanded_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         url_data['expanded_at'] = expanded_at
 
         try:
-            response = urllib2.urlopen(url)
+            while True:
+                response = urllib2.urlopen(url)
+                print url,response.url
+                if response.url == url:
+                    break
+                else:
+                    url = response.url
 
         except urllib2.HTTPError as e:
             url_data['error'] = e.code
@@ -63,3 +70,9 @@ class Expand_Url(object):
                 pass
 
             return url_data
+
+if __name__ == '__main__':
+    test_url = 'http://t.co/9BHtJ8DEKm'
+    expander = Expand_Url(db_name='url_test')
+    expanded = expander.check_cache(test_url)
+    print expanded
