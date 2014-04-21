@@ -9,17 +9,8 @@ class dbConnection(object):
        self.sql_connections = {}
 
     def create_mongo_connections(self,mongo_options=[]):
-        if 'boston' in mongo_options:
-            self.m_connections['boston'] = MongoClient(host=DB.mongo['host']).boston.tweets
-
-        if 'new_boston' in mongo_options:
-            self.m_connections['new_boston'] = MongoClient(host=DB.mongo['host']).new_boston.tweets
-
-        if 'url_test' in mongo_options:
-            self.m_connections['url_test'] = MongoClient(host=DB.mongo['host']).url_test.tweets
-
-        if 'test' in mongo_options:
-            self.m_connections['test'] = MongoClient(host=DB.mongo['host']).test.tweets
+        for db_name in mongo_options:
+            self.m_connections[db_name] = MongoClient(host=DB.mongo['host'])[db_name].tweets
 
     def create_sql_connections(self,sql_options=[]):
         for db_name in sql_options:

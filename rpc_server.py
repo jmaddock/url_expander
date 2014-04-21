@@ -21,11 +21,11 @@ def process_tweet(tweet_in):
     # Turn it into a set
     track_set = set(track_list)
     punct = re.escape('!"$%&\'()*+,-./:;<=>?@[\\]^`{|}~')
-    expander = Expand_Url(db_name='url_test')
+    expander = Expand_Url(db_name='url_cache')
     try:
         tweet = simplejson.loads(tweet_in)
         if not tweet.has_key("info"):
-            print " [x] accepted tweet ID %s" % tweet['id']
+            #print " [x] accepted tweet ID %s" % tweet['id']
             if tweet.has_key("entities"):
 
             # Insert Counts
@@ -83,11 +83,12 @@ def process_tweet(tweet_in):
                         #print tweet['text'],tweet['entities']['urls']
             result = simplejson.dumps(tweet)
             return result
-            print " [x] processed tweet ID %s" % tweet['id']
+            #print " [x] processed tweet ID %s" % tweet['id']
         else:
-            print " [x] file complete"
+            print " [x] processed %s tweets" % tweet['info']['activity_count']
 
     except ValueError as e:
+        print ' [x] %s, %s' % (e,tweet_in)
         return '%s, %s' % (e,tweet_in)
 
 def on_request(ch, method, props, body):

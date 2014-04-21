@@ -20,9 +20,9 @@ from connection import dbConnection
 import pika
 
 # Connect to mongo
-db_name = 'test'
+db_names = ['gnip_boston','gnip_processing_errors']
 db = dbConnection()
-db.create_mongo_connections(mongo_options=[db_name])
+db.create_mongo_connections(mongo_options=[db_name,error_log])
 
 # List of punct to remove from string for track keyword matching
 punct = re.escape('!"$%&\'()*+,-./:;<=>?@[\\]^`{|}~')
@@ -47,7 +47,7 @@ def to_datetime(datestring):
     dt = datetime(*time_tuple[:6])
     return dt
 
-def batch_callback(ch, method, properties, body):
+def batch_insert(ch, method, properties, body):
     global tweets_list
     global tweet_total
     global db
@@ -81,7 +81,7 @@ def batch_callback(ch, method, properties, body):
         print "error in URL: %s" % line
         pass
 
-def single_callback(ch, method, properties, body):
+def single_insert(ch, method, properties, body):
     try:
         tweet = simplejson.loads(body)
         tweet['created_ts'] = to_datetime(tweet['created_at'])
@@ -106,8 +106,57 @@ def single_callback(ch, method, properties, body):
         print "error in URL: %s" % line
         pass
 
+def single_update(ch, method, properties, body):
+    try:
+        tweet = simplejson.loads(body)
+        tweet['created_ts'] = to_datetime(tweet['created_at'])
+        tweet['user']['created_ts'] = to_datetime(tweet['user']['created_at'])
+        db.m_connections[db_name].update({'id':tweet['id']},
+                                         {'$set':{
+                                             'entities.urls':tweet['entities']['urls']}
+                                      })
+        #print " [x] inserted tweet ID %s" % tweet['id']
+
+    except ValueError, e:
+        #print "tweet not processed: %s" % (line)
+        error = {}
+        error['error'] = str(e)
+        error['tweet'] = body
+        db.m_connections[error_log].insert(error)
+        print ' [x] %s : %s' % (e, body)
+        pass
+        #except TypeError, e:
+        #        #print "tweet not processed: %s" % (line)
+        #        print e
+        #        pass
+    except KeyError, e:
+        error = {}
+        error['error'] =str(e)
+        error['process'] = 'insert'
+        error['tweet'] = body
+        db.m_connections[error_log].insert(error)
+        print " [x] malformed tweet : %s" % (body)
+        pass
+    except OverflowError, e:
+        error = {}
+        error['error'] = str(e)
+        error['process'] = 'insert'
+        error['tweet'] = body
+        db.m_connections[error_log].insert(error)
+        print " [x] malformed date in tweet: %s" % (body)
+        pass
+    except MySQLdb.ProgrammingError, e:
+        error = {}
+        error['error'] = str(e)
+        error['process'] = 'insert'
+        error['tweet'] = body
+        db.m_connections[error_log].insert(error)
+        print " [x] error in URL: %s" % line
+        pass
+
+
 channel.basic_qos(prefetch_count=1)
-channel.basic_consume(single_callback,
+channel.basic_consume(single_update,
                       queue='mongo_insert',
                       no_ack=True)
 
