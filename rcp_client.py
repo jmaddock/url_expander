@@ -39,8 +39,9 @@ for line in sys.stdin:
     line = line.strip()
     if line != '':
         response = process_tweet_rpc.call(line)
-        try:
-            tweet = simplejson.loads(str(response))
-            print tweet['id'],tweet['entities']['urls']
-        except ValueError as e:
-            print e
+        print response.encode('utf-8')
+        #try:
+        #    tweet = simplejson.loads(str(response))
+        #    print tweet
+        #except ValueError as e:
+        #    pass

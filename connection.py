@@ -18,6 +18,9 @@ class dbConnection(object):
         if 'url_test' in mongo_options:
             self.m_connections['url_test'] = MongoClient(host=DB.mongo['host']).url_test.tweets
 
+        if 'test' in mongo_options:
+            self.m_connections['test'] = MongoClient(host=DB.mongo['host']).test.tweets
+
     def create_sql_connections(self,sql_options=[]):
         for db_name in sql_options:
             sql_db = MySQLdb.connect(host=DB.sql['host'],
