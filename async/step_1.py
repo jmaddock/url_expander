@@ -1,8 +1,8 @@
-import sys,logging
+import sys,logging,config_info
 from TweetQueue import TweetQueue
 
 def main():
-    enqueue = TweetQueue(queue_name='expand_tweets')
+    enqueue = TweetQueue(queue_name=config_info.expander_queue)
     logging.basicConfig()
 
     for line in sys.stdin:

@@ -3,7 +3,7 @@ from urlparse import urlsplit
 from datetime import datetime,timedelta
 from email.utils import parsedate_tz
 from TweetQueue import TweetQueue
-import re, simplejson, time, logging
+import re, simplejson, time, logging, config_info
 
 def to_datetime(datestring):
     time_tuple = parsedate_tz(datestring.strip())
@@ -15,7 +15,7 @@ def process_tweet(tweet_in):
     # Turn it into a set
     track_set = set(track_list)
     punct = re.escape('!"$%&\'()*+,-./:;<=>?@[\\]^`{|}~')
-    expander = Expand_Url(db_name='url_cache')
+    expander = Expand_Url(db_name=config_info.cache_db)
     try:
         tweet = simplejson.loads(tweet_in)
         if not tweet.has_key("info"):
@@ -76,8 +76,8 @@ def process_tweet(tweet_in):
                         # Print tweet as JSON to stdout
                         #print tweet['text'],tweet['entities']['urls']
             result = simplejson.dumps(tweet)
+            print " [x] processed tweet ID %s" % tweet['id']
             return result
-            #print " [x] processed tweet ID %s" % tweet['id']
         else:
             print " [x] processed %s tweets" % tweet['info']['activity_count']
 
@@ -87,11 +87,12 @@ def process_tweet(tweet_in):
 
 def queue_handler(ch, method, properties, body):
     tweet = process_tweet(tweet_in=body)
-    enqueue = TweetQueue(queue_name='insert_tweets')
+    enqueue = TweetQueue(queue_name=config_info.insert_queue)
     enqueue.enqueue_tweets(n=tweet)
+    ch.basic_ack(delivery_tag = method.delivery_tag)
 
 def main():
-    dequeue = TweetQueue(queue_name='expand_tweets')
+    dequeue = TweetQueue(queue_name=config_info.expander_queue)
     logging.basicConfig()
 
     dequeue.dequeue_tweets(n=queue_handler)
