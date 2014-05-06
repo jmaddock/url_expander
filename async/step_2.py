@@ -19,7 +19,7 @@ def process_tweet(tweet_in):
     try:
         tweet = simplejson.loads(tweet_in)
         if not tweet.has_key("info"):
-            print " [x] accepted tweet ID %s" % tweet['id']
+            #print " [x] accepted tweet ID %s" % tweet['id']
             if tweet.has_key("entities"):
 
             # Insert Counts
