@@ -18,6 +18,7 @@ class Expand_Url(object):
 
         if raw_data == None:
             url_data = self.expand(short_url)
+            url_data['source'] = 'web'
             try:
                 self.cache.m_connections[self.db_name].insert(url_data)
             except bson.errors.InvalidStringData as e:
@@ -25,6 +26,7 @@ class Expand_Url(object):
             url_data.pop('_id',None)
             return url_data
         else:
+            raw_data['source'] = 'cache'
             return raw_data
 
     def expand(self,url):
@@ -37,10 +39,6 @@ class Expand_Url(object):
         while True:
             try:
                 response = urllib2.urlopen(url)
-                if response.url == url:
-                    break
-                else:
-                    url = response.url
 
             except urllib2.HTTPError as e:
                 url_data['error'] = e.code
@@ -65,22 +63,28 @@ class Expand_Url(object):
             else:
                 url_data['long-url'] = response.url
                 url_data['domain'] = urlparse(url_data['long-url']).netloc
-
-                soup = BeautifulSoup(response)
                 try:
-                    url_data['title'] = soup.title.string
-                except AttributeError as e:
+                    soup = BeautifulSoup(response)
+                    try:
+                        url_data['title'] = soup.title.string
+                    except AttributeError as e:
+                        pass
+                    try:
+                        url_data['meta-description'] = soup.find("meta", {"name":"description"})['content']
+                    except TypeError as e:
+                        pass
+                    try:
+                        url_data['meta-keywords'] = soup.find("meta", {"name":"keywords"})['content']
+                    except TypeError as e:
+                        pass
+                except SocketError as e:
+                    url_data['error'] = str(e.args[0])
                     pass
-                try:
-                    url_data['meta-description'] = soup.find("meta", {"name":"description"})['content']
-                except TypeError as e:
-                    pass
-                try:
-                    url_data['meta-keywords'] = soup.find("meta", {"name":"keywords"})['content']
-                except TypeError as e:
-                    pass
-
-        return url_data
+                else:
+                    if response.url == url:
+                        return url_data
+                    else:
+                        url = response.url
 
 if __name__ == '__main__':
     test_url = 'http://t.co/ceH5odp6Y9'

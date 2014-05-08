@@ -44,12 +44,7 @@ def process_tweet(tweet_in):
                 # begin url expansion
                 for index in range(len(tweet['entities']['urls'])):
                     ourl = tweet['entities']['urls'][index]['expanded_url']
-
-                    # if the expanded_url field is empty, try expanding the 'url' field instead
-                    if ourl is None:
-                        ourl = tweet['entities']['urls'][index]['url']
-
-                    if ourl:
+                    if ourl != None:
                         try:
                             expanded = expander.check_cache(ourl)
                             tweet['entities']['urls'][index].update(expanded)
@@ -60,16 +55,30 @@ def process_tweet(tweet_in):
                             # this catches errors which seem to emanate from unicode errors
                             # this should be checked on occasion to ensure it really is a unicode error
                         except KeyError as e:
-                            tweet['entities']['urls'][index]['expansion_error'] = "Possible Unicode Error";
+                            tweet['entities']['urls'][index]['error'] = "Possible Unicode Error";
+                    # if the expanded_url field is empty, try expanding the 'url' field instead
+                    else:
+                        ourl = tweet['entities']['urls'][index]['url']
+                        try:
+                            expanded = expander.check_cache(ourl)
+                            tweet['entities']['urls'][index].update(expanded)
+                            # Catch any exceptions related to URL or expanding errors
+                            # and make sure we record why
+                            #except (URLError, APIError, UnicodeWarning, UnicodeError) as e:
+                            #	tweet['entities']['urls'][index]['expansion_error'] = e.msg;
+                            # this catches errors which seem to emanate from unicode errors
+                            # this should be checked on occasion to ensure it really is a unicode error
+                        except KeyError as e:
+                            tweet['entities']['urls'][index]['error'] = "Possible Unicode Error";
                     # end url expansion
 
                         # Track rule matches
-                        tweet['track_kw'] = {}
-                        tweet['track_kw']['hashtags'] = list(set(tweet['hashtags']).intersection(track_set))
-                        tweet['track_kw']['mentions'] = list(set(tweet['mentions']).intersection(track_set))
-                        tweet_text = re.sub('[%s]' % punct, ' ', tweet['text'])
-                        tweet_text = tweet_text.lower().split()
-                        tweet['track_kw']['text'] = list(set(tweet_text).intersection(track_set))
+                tweet['track_kw'] = {}
+                tweet['track_kw']['hashtags'] = list(set(tweet['hashtags']).intersection(track_set))
+                tweet['track_kw']['mentions'] = list(set(tweet['mentions']).intersection(track_set))
+                tweet_text = re.sub('[%s]' % punct, ' ', tweet['text'])
+                tweet_text = tweet_text.lower().split()
+                tweet['track_kw']['text'] = list(set(tweet_text).intersection(track_set))
 
                         # Convert dates
 

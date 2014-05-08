@@ -23,12 +23,14 @@ def single_update(ch, method, properties, body):
     db.create_mongo_connections(mongo_options=db_name)
     try:
         tweet = simplejson.loads(body)
+        f = open(config_info.tweet_log, "a")
         tweet['created_ts'] = to_datetime(tweet['created_at'])
         tweet['user']['created_ts'] = to_datetime(tweet['user']['created_at'])
         db.m_connections[db_name[0]].update({'id':tweet['id']},
                                             {'$set':{
                                                 'entities.urls':tweet['entities']['urls']}
                                          })
+        f.write(body + '\n')
         print " [x] inserted tweet ID %s" % tweet['id']
 
     except ValueError, e:
