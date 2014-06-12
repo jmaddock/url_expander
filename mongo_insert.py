@@ -20,9 +20,9 @@ from connection import dbConnection
 import pika
 
 # Connect to mongo
-db_names = ['gnip_boston','gnip_processing_errors']
+db_name = ['gnip_boston','gnip_processing_errors']
 db = dbConnection()
-db.create_mongo_connections(mongo_options=[db_name,error_log])
+db.create_mongo_connections(mongo_options=db_name)
 
 # List of punct to remove from string for track keyword matching
 punct = re.escape('!"$%&\'()*+,-./:;<=>?@[\\]^`{|}~')
@@ -58,7 +58,7 @@ def batch_insert(ch, method, properties, body):
         if len(tweets_list) == 1000:
             tweet_total += len(tweets_list)
             print "inserting 5k tweets - %i total" % tweet_total
-            db.m_connections[db_name].insert(tweets_list)
+            db.m_connections[db_name[0]].insert(tweets_list)
             tweets_list = []
         else:
             tweets_list.append(tweet)
@@ -86,7 +86,7 @@ def single_insert(ch, method, properties, body):
         tweet = simplejson.loads(body)
         tweet['created_ts'] = to_datetime(tweet['created_at'])
         tweet['user']['created_ts'] = to_datetime(tweet['user']['created_at'])
-        db.m_connections[db_name].insert(tweet)
+        db.m_connections[db_name[0]].insert(tweet)
 
     except ValueError, e:
         #print "tweet not processed: %s" % (line)
@@ -111,18 +111,18 @@ def single_update(ch, method, properties, body):
         tweet = simplejson.loads(body)
         tweet['created_ts'] = to_datetime(tweet['created_at'])
         tweet['user']['created_ts'] = to_datetime(tweet['user']['created_at'])
-        db.m_connections[db_name].update({'id':tweet['id']},
+        db.m_connections[db_name[0]].update({'id':tweet['id']},
                                          {'$set':{
                                              'entities.urls':tweet['entities']['urls']}
                                       })
-        #print " [x] inserted tweet ID %s" % tweet['id']
+        print " [x] inserted tweet ID %s" % tweet['id']
 
     except ValueError, e:
         #print "tweet not processed: %s" % (line)
         error = {}
         error['error'] = str(e)
         error['tweet'] = body
-        db.m_connections[error_log].insert(error)
+        db.m_connections[db_name[1]].insert(error)
         print ' [x] %s : %s' % (e, body)
         pass
         #except TypeError, e:
@@ -134,7 +134,7 @@ def single_update(ch, method, properties, body):
         error['error'] =str(e)
         error['process'] = 'insert'
         error['tweet'] = body
-        db.m_connections[error_log].insert(error)
+        db.m_connections[db_name[1]].insert(error)
         print " [x] malformed tweet : %s" % (body)
         pass
     except OverflowError, e:
@@ -142,7 +142,7 @@ def single_update(ch, method, properties, body):
         error['error'] = str(e)
         error['process'] = 'insert'
         error['tweet'] = body
-        db.m_connections[error_log].insert(error)
+        db.m_connections[db_name[1]].insert(error)
         print " [x] malformed date in tweet: %s" % (body)
         pass
     except MySQLdb.ProgrammingError, e:
@@ -150,7 +150,7 @@ def single_update(ch, method, properties, body):
         error['error'] = str(e)
         error['process'] = 'insert'
         error['tweet'] = body
-        db.m_connections[error_log].insert(error)
+        db.m_connections[db_name[1]].insert(error)
         print " [x] error in URL: %s" % line
         pass
 

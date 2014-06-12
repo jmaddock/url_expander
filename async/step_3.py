@@ -72,6 +72,59 @@ def single_update(ch, method, properties, body):
 
     ch.basic_ack(delivery_tag = method.delivery_tag)
 
+def single_insert(ch, method, properties, body):
+    db_name = [config_info.tweet_db,config_info.processing_errors_db]
+    db = dbConnection()
+    db.create_mongo_connections(mongo_options=db_name)
+    try:
+        tweet = simplejson.loads(body)
+        f = open(config_info.tweet_log, "a")
+        tweet['created_ts'] = to_datetime(tweet['created_at'])
+        tweet['user']['created_ts'] = to_datetime(tweet['user']['created_at'])
+        db.m_connections[db_name[0]].insert(tweet)
+        f.write(body + '\n')
+        print " [x] inserted tweet ID %s" % tweet['id']
+
+    except ValueError, e:
+        #print "tweet not processed: %s" % (line)
+        error = {}
+        error['error'] = str(e)
+        error['tweet'] = body
+        db.m_connections[db_name[1]].insert(error)
+        print ' [x] %s : %s' % (e, body)
+        pass
+        #except TypeError, e:
+        #        #print "tweet not processed: %s" % (line)
+        #        print e
+        #        pass
+    except KeyError, e:
+        error = {}
+        error['error'] =str(e)
+        error['process'] = 'insert'
+        error['tweet'] = body
+        db.m_connections[db_name[1]].insert(error)
+        print " [x] malformed tweet : %s" % (body)
+        pass
+    except OverflowError, e:
+        error = {}
+        error['error'] = str(e)
+        error['process'] = 'insert'
+        error['tweet'] = body
+        db.m_connections[db_name[1]].insert(error)
+        print " [x] malformed date in tweet: %s" % (body)
+        pass
+    except MySQLdb.ProgrammingError, e:
+        error = {}
+        error['error'] = str(e)
+        error['process'] = 'insert'
+        error['tweet'] = body
+        db.m_connections[db_name[1]].insert(error)
+        print " [x] error in URL: %s" % line
+        pass
+
+    ch.basic_ack(delivery_tag = method.delivery_tag)
+
+
 def main():
     # Connect to mongo
 
