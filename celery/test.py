@@ -1,4 +1,4 @@
-import sys, timeit, config_info
+import sys, timeit, config_info, httplib
 from celery import group
 from tasks import process,insert
 from billiard.exceptions import TimeLimitExceeded
